@@ -34,7 +34,11 @@ const MODEL_MAPPING = {
   'glm-4.7': 'z-ai/glm4.7',
   'mistral': 'mistralai/devstral-2-123b-instruct-2512',
   'mistral-turbo': 'mistralai/magistral-small-2506',
-  'mistral-pro': 'mistralai/mistral-small-4-119b-2603'
+  'mistral-pro': 'mistralai/mistral-small-4-119b-2603',
+  'google-light': 'google/gemma-3-27b-it',
+  'google-lightest': 'google/gemma-2-2b-it',
+  'google-lighter': 'google/gemma-3n-e4b-it'
+  
 };
 
 // Health check endpoint
