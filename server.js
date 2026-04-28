@@ -192,35 +192,28 @@ app.post('/v1/chat/completions', async (req, res) => {
       });
     } else {
       // Transform NIM response to OpenAI format with reasoning
-      const openaiResponse = {
-        id: `chatcmpl-${Date.now()}`,
-        object: 'chat.completion',
-        created: Math.floor(Date.now() / 1000),
-        model: model,
-        choices: response.data.choices.map(choice => {
-          let fullContent = choice.message?.content || '';
-          
-          if (SHOW_REASONING && choice.message?.reasoning_content) {
-            fullContent = '<think>\n' + choice.message.reasoning_content + '\n</think>\n\n' + fullContent;
-          }
-          
-          return {
-            index: choice.index,
-            message: {
-              role: choice.message.role,
-              content: fullContent
-            },
-            finish_reason: choice.finish_reason
-          };
-        }),
-        usage: response.data.usage || {
-          prompt_tokens: 0,
-          completion_tokens: 0,
-          total_tokens: 0
-        }
-      };
-      
-      res.json(openaiResponse);
+const openaiResponse = {
+  id: `chatcmpl-${Date.now()}`,
+  object: 'chat.completion',
+  created: Math.floor(Date.now() / 1000),
+  model: model,
+  choices: response.data.choices.map(choice => ({
+    index: choice.index,
+    message: {
+      role: choice.message.role || 'assistant',
+      content: choice.message?.content || ''
+    },
+    finish_reason: choice.finish_reason || 'stop'
+  })),
+  usage: response.data.usage || {
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0
+  }
+};
+
+res.setHeader('Content-Type', 'application/json');
+res.status(200).send(JSON.stringify(openaiResponse));
     }
     
   } catch (error) {
