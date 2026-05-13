@@ -48,7 +48,6 @@ const MODEL_MAPPING = {
   'gemini-pro': 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
   'gpt-4-flash': 'deepseek-ai/deepseek-v4-flash',
   'glm-5.1': 'z-ai/glm-5.1',
-  'glm-4.7': 'z-ai/glm4.7',
   'mistral': 'mistralai/mistral-large-3-675b-instruct-2512',
   'mistral-turbo': 'mistralai/mistral-medium-3.5-128b',
   'mistral-pro': 'mistralai/mistral-small-4-119b-2603',
@@ -63,7 +62,9 @@ const MODEL_MAPPING = {
 // Fallback chain
 const FALLBACK_MODELS = [
   'mistralai/mistral-medium-3.5-128b',
-  'mistralai/mistral-small-4-119b-2603'
+  'mistralai/mistral-small-4-119b-2603',
+  'nvidia/llama-3.3-nemotron-super-49b-v1.5',
+  'google/gemma-4-31b-it'
 ];
 
 // Health
