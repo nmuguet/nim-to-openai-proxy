@@ -5,6 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { StringDecoder } = require('string_decoder');
+const { timingSafeEqual } = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +21,20 @@ app.use((req, res, next) => {
   const auth = req.headers.authorization?.trim();
   const expected = `Bearer ${process.env.CLIENT_AUTH_KEY}`;
 
-  if (!auth || auth !== expected) {
+  if (!auth || !expected || auth.length !== expected.length) {
+    return res.status(403).json({
+      error: {
+        message: 'Forbidden',
+        type: 'authentication_error',
+        code: 403
+      }
+    });
+  }
+
+  const authBuf = Buffer.from(auth);
+  const expectedBuf = Buffer.from(expected);
+
+  if (!timingSafeEqual(authBuf, expectedBuf)) {
     return res.status(403).json({
       error: {
         message: 'Forbidden',
@@ -32,6 +46,7 @@ app.use((req, res, next) => {
 
   next();
 });
+
 
 const NIM_API_BASE = process.env.NIM_API_BASE || 'https://integrate.api.nvidia.com/v1';
 const NIM_API_KEY = process.env.NIM_API_KEY;
