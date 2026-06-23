@@ -23,6 +23,11 @@ const ENABLE_THINKING_MODE = process.env.ENABLE_THINKING_MODE === 'true';
 const SKIP_VALIDATION = process.env.SKIP_VALIDATION === 'true';
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
+// NEW: Configurable reasoning effort for DeepSeek V4 models
+// Options: 'low', 'medium', 'high', 'max' (default: 'high')
+const REASONING_EFFORT = process.env.REASONING_EFFORT || 'high';
+const VALID_REASONING_EFFORTS = ['low', 'medium', 'high', 'max'];
+
 const MAX_TOKENS_LIMIT = 65536;
 const REQUEST_TIMEOUT_MS = 180000;
 const VALIDATION_TIMEOUT_MS = 15000;
@@ -30,6 +35,11 @@ const MAX_BUFFER_SIZE = 1024 * 1024;
 
 if (SHOW_REASONING) console.log('[CONFIG] Reasoning display: ENABLED');
 if (ENABLE_THINKING_MODE) console.log('[CONFIG] Thinking mode: ENABLED');
+
+// Validate reasoning effort
+if (ENABLE_THINKING_MODE && !VALID_REASONING_EFFORTS.includes(REASONING_EFFORT)) {
+  console.warn(`[WARN] Invalid REASONING_EFFORT="${REASONING_EFFORT}". Must be one of: ${VALID_REASONING_EFFORTS.join(', ')}. Falling back to 'high'.`);
+}
 
 // ─── Config validation ──────────────────────────────────────────────────────
 
@@ -271,18 +281,25 @@ function formatWithReasoning(content, reasoning, showReasoning) {
 }
 
 // PATCH: ─── Helper: Build thinking-aware request ───────────────────────────
+// FIX: DeepSeek V4 on NIM requires chat_template_kwargs at ROOT level, not extra_body
+//      or the API hangs indefinitely without returning anything.
 
 function buildThinkingRequest(baseRequest, modelId, enableThinking) {
   const config = THINKING_MODEL_CONFIG[modelId];
   if (!config) return baseRequest;
   
-  const extraBody = baseRequest.extra_body ? { ...baseRequest.extra_body } : {};
+  const chatTemplateKwargs = {};
   
   switch (config.mode) {
     case 'hybrid':
       if (enableThinking !== undefined) {
+        const extraBody = baseRequest.extra_body ? { ...baseRequest.extra_body } : {};
         extraBody[config.param] = enableThinking;
         console.log(`[THINKING] ${modelId}: set ${config.param}=${enableThinking}`);
+        return {
+          ...baseRequest,
+          extra_body: extraBody
+        };
       }
       break;
       
@@ -297,19 +314,34 @@ function buildThinkingRequest(baseRequest, modelId, enableThinking) {
           console.warn(`[THINKING] ${modelId}: This model requires a system prompt with "detailed thinking on" to enable reasoning.`);
         }
       }
-      break;
+      return baseRequest;
       
     case 'auto':
       if (enableThinking) {
-        console.log(`[THINKING] ${modelId}: Model thinks automatically, no API flag needed.`);
+        // DeepSeek V4, Kimi K2.6, GLM-5, MiniMax, Step — need chat_template_kwargs at ROOT
+        // NIM strictly requires this or the API hangs indefinitely
+        chatTemplateKwargs.thinking = true;
+        
+        // DeepSeek V4 specifically supports configurable reasoning effort
+        if (modelId.includes('deepseek-v4')) {
+          const effort = VALID_REASONING_EFFORTS.includes(REASONING_EFFORT) 
+            ? REASONING_EFFORT 
+            : 'high';
+          chatTemplateKwargs.reasoning_effort = effort;
+        }
+        
+        console.log(`[THINKING] ${modelId}: Injected chat_template_kwargs at root level`);
       }
       break;
   }
   
-  return {
-    ...baseRequest,
-    extra_body: Object.keys(extraBody).length > 0 ? extraBody : undefined
-  };
+  const result = { ...baseRequest };
+  
+  if (Object.keys(chatTemplateKwargs).length > 0) {
+    result.chat_template_kwargs = chatTemplateKwargs;
+  }
+  
+  return result;
 }
 
 // ─── Helper: Fallback Chain ─────────────────────────────────────────────────
@@ -603,7 +635,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       res.end();
     }
 
-    if (upstreamStream && !upstreamStream.destroyed) {
+    if (upstreamStream && !upstreamStream.destroyed) 
       upstreamStream.destroy();
     }
   }
