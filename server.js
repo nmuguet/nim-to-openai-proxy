@@ -294,7 +294,7 @@ app.post('/v1/chat/completions', async (req, res) => {
 
     const baseRequest = {
       messages,
-      temperature: temperature ?? 0.7,
+      temperature: temperature ?? 0.8,
       max_tokens: Math.min(max_tokens ?? 2048, MAX_TOKENS_LIMIT),
       stream: stream || false,
       extra_body: ENABLE_THINKING_MODE
