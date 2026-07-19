@@ -286,7 +286,16 @@ app.post('/v1/chat/completions', async (req, res) => {
       messages,
       temperature,
       max_tokens,
-      stream
+      stream,
+      tools,
+      tool_choice,
+      response_format,
+      top_p,
+      presence_penalty,
+      frequency_penalty,
+      stop,
+      user,
+      ...rest
     } = req.body;
 
     const primaryModel = MODEL_MAPPING[model] || 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
@@ -297,8 +306,17 @@ app.post('/v1/chat/completions', async (req, res) => {
       temperature: temperature ?? 0.8,
       max_tokens: Math.min(max_tokens ?? 2048, MAX_TOKENS_LIMIT),
       stream: stream || false,
+      ...(tools ? { tools } : {}),
+      ...(tool_choice !== undefined ? { tool_choice } : {}),
+      ...(response_format ? { response_format } : {}),
+      ...(top_p !== undefined ? { top_p } : {}),
+      ...(presence_penalty !== undefined ? { presence_penalty } : {}),
+      ...(frequency_penalty !== undefined ? { frequency_penalty } : {}),
+      ...(stop !== undefined ? { stop } : {}),
+      ...(user !== undefined ? { user } : {}),
+      ...(Object.keys(rest).length > 0 ? { extra_body: rest } : {}),
       extra_body: ENABLE_THINKING_MODE
-        ? { chat_template_kwargs: { reasoning_effort: "high" } }
+        ? { ...(Object.keys(rest).length > 0 ? rest : {}), chat_template_kwargs: { reasoning_effort: "high" } }
         : undefined
     };
 
@@ -476,7 +494,7 @@ app.post('/v1/chat/completions', async (req, res) => {
             message: {
               role: choice.message?.role || 'assistant',
               content,
-              tool_calls: choice.message?.tool_calls
+              ...(choice.message?.tool_calls ? { tool_calls: choice.message.tool_calls } : {})
             },
             finish_reason: choice.finish_reason || 'stop'
           };
