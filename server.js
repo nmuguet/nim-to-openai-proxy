@@ -301,6 +301,8 @@ app.post('/v1/chat/completions', async (req, res) => {
     const primaryModel = MODEL_MAPPING[model] || 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
     const modelChain = [primaryModel, ...FALLBACK_MODELS];
 
+    console.log('\n[PROXY] Raw outgoing messages:', JSON.stringify(messages, null, 2));
+
     const baseRequest = {
       messages,
       temperature: temperature ?? 0.8,
