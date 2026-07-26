@@ -315,19 +315,14 @@ app.post('/v1/chat/completions', async (req, res) => {
       ...(presence_penalty !== undefined ? { presence_penalty } : {}),
       ...(frequency_penalty !== undefined ? { frequency_penalty } : {}),
       ...(stop !== undefined ? { stop } : {}),
-      ...(user !== undefined ? { user } : {}),
-      
-      // On étale directement les paramètres "rest" à la racine
-      ...(Object.keys(rest).length > 0 ? rest : {}),
-      
-      // Si le mode pensée est activé, on met chat_template_kwargs à la racine
-      ...(ENABLE_THINKING_MODE ? { 
-        chat_template_kwargs: { reasoning_effort: "high" } 
-      } : {})
+      ...(Object.keys(rest).length > 0 ? { extra_body: rest } : {}),
+      extra_body: ENABLE_THINKING_MODE
+        ? { ...(Object.keys(rest).length > 0 ? rest : {}), chat_template_kwargs: { reasoning_effort: "high" } }
+        : undefined
     };
 
     //log temporaire pour voir ce qui s'envoie vraiment
-    console.log('[PROXY] Outgoing payload:', JSON.stringify({ ...baseRequest, model: primaryModel }, null, 2));
+    //console.log('[PROXY] Outgoing payload:', JSON.stringify({ ...baseRequest, model: primaryModel }, null, 2));
 
     const { response, model: usedModel } = await callWithFallback(baseRequest, modelChain);
     upstreamStream = response.data;
