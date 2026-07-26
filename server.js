@@ -254,6 +254,9 @@ async function callWithFallback(baseRequest, models, rest) {
         model
       };
 
+      //log temporaire pour voir ce qui s'envoie vraiment
+      console.log('[PROXY] Outgoing payload:', request);
+
       const res = await axios.post(
         `${NIM_API_BASE}/chat/completions`,
         request,
@@ -325,7 +328,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     const primaryModel = MODEL_MAPPING[model] || 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
     const modelChain = [primaryModel, ...FALLBACK_MODELS];
 
-    console.log('\n[PROXY] Raw outgoing messages:', JSON.stringify(messages, null, 2));
+    //console.log('\n[PROXY] Raw outgoing messages:', JSON.stringify(messages, null, 2));
 
     const baseRequest = {
       messages,
@@ -340,9 +343,6 @@ app.post('/v1/chat/completions', async (req, res) => {
       ...(frequency_penalty !== undefined ? { frequency_penalty } : {}),
       ...(stop !== undefined ? { stop } : {})
     };
-
-    //log temporaire pour voir ce qui s'envoie vraiment
-    //console.log('[PROXY] Outgoing payload:', JSON.stringify({ ...baseRequest, model: primaryModel }, null, 2));
 
     const { response, model: usedModel } = await callWithFallback(baseRequest, modelChain, rest);
     upstreamStream = response.data;
