@@ -316,10 +316,14 @@ app.post('/v1/chat/completions', async (req, res) => {
       ...(frequency_penalty !== undefined ? { frequency_penalty } : {}),
       ...(stop !== undefined ? { stop } : {}),
       ...(user !== undefined ? { user } : {}),
-      ...(Object.keys(rest).length > 0 ? { extra_body: rest } : {}),
-      extra_body: ENABLE_THINKING_MODE
-        ? { ...(Object.keys(rest).length > 0 ? rest : {}), chat_template_kwargs: { reasoning_effort: "high" } }
-        : undefined
+      
+      // On étale directement les paramètres "rest" à la racine
+      ...(Object.keys(rest).length > 0 ? rest : {}),
+      
+      // Si le mode pensée est activé, on met chat_template_kwargs à la racine
+      ...(ENABLE_THINKING_MODE ? { 
+        chat_template_kwargs: { reasoning_effort: "high" } 
+      } : {})
     };
 
     const { response, model: usedModel } = await callWithFallback(baseRequest, modelChain);
