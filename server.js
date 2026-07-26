@@ -326,6 +326,9 @@ app.post('/v1/chat/completions', async (req, res) => {
       } : {})
     };
 
+    //log temporaire pour voir ce qui s'envoie vraiment
+    console.log('[PROXY] Outgoing payload:', JSON.stringify({ ...baseRequest, model: primaryModel }, null, 2));
+
     const { response, model: usedModel } = await callWithFallback(baseRequest, modelChain);
     upstreamStream = response.data;
     console.log('[PROXY] Model used:', usedModel);
