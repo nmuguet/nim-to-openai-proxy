@@ -225,14 +225,38 @@ function safeWrite(res, data) {
 
 // ─── Helper: Fallback Chain ─────────────────────────────────────────────────
 
-async function callWithFallback(baseRequest, models) {
+function getModelRequestExtras(model, rest) {
+  const hasExtraFields = Object.keys(rest).length > 0;
+
+  if (model.startsWith('mistralai/')) {
+    const extraBody = ENABLE_THINKING_MODE
+      ? { ...(hasExtraFields ? rest : {}), chat_template_kwargs: { reasoning_effort: 'high' } }
+      : (hasExtraFields ? rest : undefined);
+
+    return extraBody ? { extra_body: extraBody } : {};
+  }
+
+  if (model === 'z-ai/glm-5.2') {
+    return ENABLE_THINKING_MODE ? { chat_template_kwargs: { reasoning_effort: 'max' } } : {};
+  }
+
+  return {};
+}
+
+async function callWithFallback(baseRequest, models, rest) {
   let lastError = null;
 
   for (const model of models) {
     try {
+      const request = {
+        ...baseRequest,
+        ...getModelRequestExtras(model, rest),
+        model
+      };
+
       const res = await axios.post(
         `${NIM_API_BASE}/chat/completions`,
-        { ...baseRequest, model },
+        request,
         {
           headers: {
             Authorization: `Bearer ${NIM_API_KEY}`,
@@ -314,17 +338,13 @@ app.post('/v1/chat/completions', async (req, res) => {
       ...(top_p !== undefined ? { top_p } : {}),
       ...(presence_penalty !== undefined ? { presence_penalty } : {}),
       ...(frequency_penalty !== undefined ? { frequency_penalty } : {}),
-      ...(stop !== undefined ? { stop } : {}),
-      ...(Object.keys(rest).length > 0 ? { extra_body: rest } : {}),
-      extra_body: ENABLE_THINKING_MODE
-        ? { ...(Object.keys(rest).length > 0 ? rest : {}), chat_template_kwargs: { reasoning_effort: "high" } }
-        : undefined
+      ...(stop !== undefined ? { stop } : {})
     };
 
     //log temporaire pour voir ce qui s'envoie vraiment
     //console.log('[PROXY] Outgoing payload:', JSON.stringify({ ...baseRequest, model: primaryModel }, null, 2));
 
-    const { response, model: usedModel } = await callWithFallback(baseRequest, modelChain);
+    const { response, model: usedModel } = await callWithFallback(baseRequest, modelChain, rest);
     upstreamStream = response.data;
     console.log('[PROXY] Model used:', usedModel);
 
