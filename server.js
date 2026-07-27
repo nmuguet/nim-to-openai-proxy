@@ -237,7 +237,7 @@ function getModelRequestExtras(model, rest) {
   }
 
   if (model === 'z-ai/glm-5.2') {
-    return ENABLE_THINKING_MODE ? { chat_template_kwargs: { reasoning_effort: 'max' } } : {};
+    return ENABLE_THINKING_MODE ? { chat_template_kwargs: { reasoning_effort: 'high' } } : {};
   }
 
   return {};
@@ -255,7 +255,7 @@ async function callWithFallback(baseRequest, models, rest) {
       };
 
       //log temporaire pour voir ce qui s'envoie vraiment
-      console.log('[PROXY] Outgoing payload:', request);
+      //console.log('[PROXY] Outgoing payload:', request);
 
       const res = await axios.post(
         `${NIM_API_BASE}/chat/completions`,
