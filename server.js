@@ -227,7 +227,7 @@ function safeWrite(res, data) {
 
 function getModelRequestExtras(model, rest) {
   const hasExtraFields = Object.keys(rest).length > 0;
-
+/*
   if (model.startsWith('mistralai/')) {
     const extraBody = ENABLE_THINKING_MODE
       ? { ...(hasExtraFields ? rest : {}), chat_template_kwargs: { reasoning_effort: 'high' } }
@@ -235,6 +235,7 @@ function getModelRequestExtras(model, rest) {
 
     return extraBody ? { extra_body: extraBody } : {};
   }
+  */
 
   if (model === 'z-ai/glm-5.2') {
     return ENABLE_THINKING_MODE ? { chat_template_kwargs: { reasoning_effort: 'high' } } : {};
